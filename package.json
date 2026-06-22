@@ -1,0 +1,13 @@
+{
+  "name": "partner-notify-demo",
+  "private": true,
+  "dependencies": {
+    "express": "^4.21.2",
+    "serverless-http": "^3.2.0",
+    "twilio": "^5.2.3"
+  },
+  "scripts": {
+    "build": "cd web && npm ci && npm run build && cd ../backend-20260428T174413Z-3-001/backend && npm ci",
+    "build:web": "cd web && npm ci && npm run build"
+  }
+}
