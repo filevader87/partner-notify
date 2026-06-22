@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { createTwilioSmsService } = require('../src/twilioService');
 
-test('mock SMS delivery returns a deterministic provider response', async () => {
+test('mock SMS delivery returns a unique provider response', async () => {
   const service = createTwilioSmsService({ mockDelivery: true });
 
   const result = await service.send({

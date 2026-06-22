@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { createServer } = require('node:http');
 const { createApp } = require('../src/app');
+const { ApiError } = require('../src/apiError');
 const { validateProductionConfig } = require('../src/config');
 const { createMemoryDeliveryLedger } = require('../src/deliveryLedger');
 const { createMemoryIdempotencyStore } = require('../src/idempotencyStore');
@@ -191,9 +192,7 @@ test('POST /send reports partial delivery without storing raw phone numbers in l
 test('POST /send maps duplicate or expired Turnstile tokens to refreshable captcha errors', async () => {
   await withServer({
     verifyCaptcha: async () => {
-      const error = new Error('expired');
-      error.code = 'CAPTCHA_EXPIRED';
-      throw error;
+      throw new ApiError(403, 'CAPTCHA_EXPIRED', 'Captcha token expired. Complete the challenge again.')
     },
     rateLimiter: { consume: async () => true },
     idempotencyStore: createMemoryIdempotencyStore()

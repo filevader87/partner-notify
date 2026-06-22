@@ -25,13 +25,23 @@ function createMemoryRateLimiter({ limit = 5, windowMs = 86_400_000, clock = Dat
 function createMemoryRateLimitStore({ clock = Date, onConsume } = {}) {
   const attemptsByKey = new Map();
 
+  function getRecentAttempts(key, windowMs) {
+    const now = clock.now();
+    const windowStart = now - windowMs;
+    const previousAttempts = attemptsByKey.get(key) || [];
+    const recentAttempts = previousAttempts.filter((timestamp) => timestamp > windowStart);
+    return { now, recentAttempts }
+  }
+
   return {
+    async peekWindow(key, { limit, windowMs }) {
+      const { recentAttempts } = getRecentAttempts(key, windowMs)
+      return recentAttempts.length < limit
+    },
+
     async consumeWindow(key, { limit, windowMs }) {
       onConsume?.(key);
-      const now = clock.now();
-      const windowStart = now - windowMs;
-      const previousAttempts = attemptsByKey.get(key) || [];
-      const recentAttempts = previousAttempts.filter((timestamp) => timestamp > windowStart);
+      const { now, recentAttempts } = getRecentAttempts(key, windowMs)
 
       if (recentAttempts.length >= limit) {
         attemptsByKey.set(key, recentAttempts);
@@ -70,6 +80,15 @@ function createRedisRestRateLimitStore({
   }
 
   return {
+    async peekWindow(key, { limit, windowMs }) {
+      const response = await command(['GET', key])
+      if (response.result === null || response.result === undefined) {
+        return true
+      }
+      const count = Number(response.result)
+      return count < limit
+    },
+
     async consumeWindow(key, { limit, windowMs }) {
       const result = await command(['INCR', key]);
       const count = Number(result.result);
@@ -104,6 +123,15 @@ function createCompositeRateLimiter({
         ])
       ];
 
+      // Peek all limits first — if any would fail, reject without consuming
+      for (const [key, limitConfig] of checks) {
+        const allowed = await effectiveStore.peekWindow(key, limitConfig);
+        if (!allowed) {
+          return false;
+        }
+      }
+
+      // All limits pass — consume all
       for (const [key, limitConfig] of checks) {
         const allowed = await effectiveStore.consumeWindow(key, limitConfig);
         if (!allowed) {

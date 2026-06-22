@@ -1,3 +1,5 @@
+const fs = require('node:fs')
+
 function createConsoleDeliveryLedger() {
   return {
     async recordRecipient(record) {
@@ -14,6 +16,26 @@ function createConsoleDeliveryLedger() {
       }));
     }
   };
+}
+
+function createFileDeliveryLedger({ filePath = './delivery-ledger.jsonl' } = {}) {
+  async function appendLine(data) {
+    try {
+      await fs.promises.appendFile(filePath, JSON.stringify(data) + '\n')
+    } catch (error) {
+      console.error('Failed to write delivery ledger:', error.message)
+    }
+  }
+
+  return {
+    async recordRecipient(record) {
+      await appendLine({ event: 'delivery_ledger_recorded', ...record })
+    },
+
+    async recordProviderStatus(record) {
+      await appendLine({ event: 'provider_status_recorded', ...record })
+    }
+  }
 }
 
 function createMemoryDeliveryLedger() {
@@ -36,5 +58,6 @@ function createMemoryDeliveryLedger() {
 
 module.exports = {
   createConsoleDeliveryLedger,
+  createFileDeliveryLedger,
   createMemoryDeliveryLedger
 };

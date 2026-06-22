@@ -1,6 +1,8 @@
 const twilio = require('twilio');
 const { ApiError } = require('./apiError');
 
+let mockCounter = 0;
+
 function createTwilioSmsService({
   accountSid = process.env.TWILIO_SID,
   authToken = process.env.TWILIO_TOKEN,
@@ -13,7 +15,7 @@ function createTwilioSmsService({
       async send() {
         return {
           status: 'mocked',
-          sid: `SMmock${Date.now()}`
+          sid: `SMmock${++mockCounter}`
         };
       }
     };

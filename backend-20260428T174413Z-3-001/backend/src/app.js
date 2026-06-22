@@ -40,6 +40,14 @@ function fingerprintPayload(payload) {
     .digest('hex');
 }
 
+function parseTrustProxy(value) {
+  if (value === undefined || value === '') return 1
+  if (/^\d+$/.test(value)) return Number(value)
+  if (value === 'true') return true
+  if (value === 'false') return false
+  return value
+}
+
 function createApp({
   smsService = createTwilioSmsService(),
   rateLimiter = createDefaultRateLimiter(),
@@ -54,7 +62,7 @@ function createApp({
   const app = express();
 
   app.disable('x-powered-by');
-  app.set('trust proxy', 1);
+  app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
   app.use(createCorsMiddleware({ allowedOrigins }));
   app.use(express.json({ limit: '16kb' }));
   app.use(express.urlencoded({ extended: false }));
